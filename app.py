@@ -59,6 +59,17 @@ def delete_student(student_id):
     mongo.db.students.delete_one({"_id": ObjectId(student_id)})
     return redirect(url_for('index'))
 
+
+# Health check used by the CI/CD pipelines after a deploy
+@app.route('/health')
+def health():
+    try:
+        mongo.cx.admin.command("ping")
+        return {"status": "ok", "db": "connected", "version": os.getenv("APP_VERSION", "dev")}, 200
+    except Exception:
+        return {"status": "degraded", "db": "disconnected"}, 503
+
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True, port=5000)
 

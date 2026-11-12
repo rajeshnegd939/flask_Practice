@@ -1,0 +1,43 @@
+# Jenkins Configuration as Code. ${VARS} come from the container environment.
+jenkins:
+  systemMessage: "flask_Practice CI/CD - build, test with pytest, deploy to staging"
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: admin
+          password: ${JENKINS_ADMIN_PASSWORD}
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: true   # the security group limits port 8080
+
+unclassified:
+  location:
+    url: ${JENKINS_URL}
+
+jobs:
+  - script: >
+      pipelineJob('flask-practice-ci-cd') {
+        description('Build (pip), Test (pytest) and Deploy to staging on every push to main')
+        properties {
+          pipelineTriggers {
+            triggers {
+              githubPush()
+              pollSCM { scmpoll_spec('H/5 * * * *') }
+            }
+          }
+        }
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('${GIT_REPO_URL}') }
+                branch('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(true)
+          }
+        }
+      }

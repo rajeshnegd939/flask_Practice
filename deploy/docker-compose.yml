@@ -1,0 +1,24 @@
+# Runs on the staging / production EC2 servers (started by deploy/remote-deploy.sh)
+services:
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    # no ports published: only the app container can reach MongoDB
+
+  app:
+    image: flask-practice:${APP_VERSION:-latest}
+    restart: unless-stopped
+    env_file:
+      - /opt/flask-app/shared/app.env      # SECRET_KEY, kept outside the release folder
+    environment:
+      MONGO_URI: mongodb://mongo:27017/studentDB
+      APP_VERSION: ${APP_VERSION:-latest}
+    ports:
+      - "80:5000"
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:
