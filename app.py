@@ -9,12 +9,16 @@ import os
 load_dotenv()
 
 app = Flask(__name__)
-app.config["MONGO_URI"] = os.getenv("MONGO_URI")
+MONGO_URI = os.getenv("MONGO_URI", "")
+app.config["MONGO_URI"] = MONGO_URI
 app.secret_key = os.getenv("SECRET_KEY")
 
 # Use certifi CA bundle explicitly for cross-platform TLS reliability
 # (notably fixes common macOS certificate verification failures).
-mongo = PyMongo(app, tlsCAFile=certifi.where())
+# Only for TLS connections (Atlas uses mongodb+srv://). Passing tlsCAFile turns TLS on,
+# which breaks a plain local MongoDB (CI tests, the docker-compose deployment).
+uses_tls = MONGO_URI.startswith("mongodb+srv://") or "tls=true" in MONGO_URI.lower() or "ssl=true" in MONGO_URI.lower()
+mongo = PyMongo(app, tlsCAFile=certifi.where()) if uses_tls else PyMongo(app)
 
 # Home page -> list students
 @app.route('/')
